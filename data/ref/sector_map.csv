@@ -1,0 +1,59 @@
+a64,section,iam_sector,damodaran_industry
+A01,A,AFOLU,Farming/Agriculture
+A02,A,AFOLU,Paper/Forest Products
+A03,A,AFOLU,Farming/Agriculture
+B,B,SUPPLY,Metals & Mining
+C10-C12,C,IND,Food Processing
+C13-C15,C,IND,Apparel
+C16,C,IND,Paper/Forest Products
+C17,C,IND,Paper/Forest Products
+C18,C,IND,Publishing & Newspapers
+C19,C,SUPPLY,Oil/Gas (Integrated)
+C20,C,IND,Chemical (Basic)
+C21,C,IND,Drugs (Pharmaceutical)
+C22,C,IND,Rubber& Tires
+C23,C,IND,Building Materials
+C24,C,IND,Steel
+C25,C,IND,Machinery
+C26,C,IND,Electronics (General)
+C27,C,IND,Electrical Equipment
+C28,C,IND,Machinery
+C29,C,IND,Auto & Truck
+C30,C,IND,Aerospace/Defense
+C31_C32,C,IND,Furn/Home Furnishings
+C33,C,IND,Machinery
+D,D,ELEC,Power
+E36,E,IND,Utility (Water)
+E37-E39,E,IND,Environmental & Waste Services
+F,F,IND,Engineering/Construction
+G45,G,RC,Retail (Automotive)
+G46,G,RC,Retail (Distributors)
+G47,G,RC,Retail (General)
+H49,H,TRANS,Trucking
+H50,H,TRANS,Shipbuilding & Marine
+H51,H,TRANS,Air Transport
+H52,H,TRANS,Transportation
+H53,H,TRANS,Transportation
+I,I,RC,Hotel/Gaming
+J58,J,RC,Publishing & Newspapers
+J59_J60,J,RC,Broadcasting
+J61,J,RC,Telecom. Services
+J62_J63,J,RC,Computer Services
+L,L,RC,Real Estate (Operations & Services)
+M69_M70,M,RC,Business & Consumer Services
+M71,M,RC,Engineering/Construction
+M72,M,RC,Business & Consumer Services
+M73,M,RC,Advertising
+M74_M75,M,RC,Business & Consumer Services
+N77,N,RC,Business & Consumer Services
+N78,N,RC,Business & Consumer Services
+N79,N,RC,Business & Consumer Services
+N80-N82,N,RC,Business & Consumer Services
+P,P,RC,Education
+Q86,Q,RC,Hospitals/Healthcare Facilities
+Q87_Q88,Q,RC,Healthcare Support Services
+R90-R92,R,RC,Entertainment
+R93,R,RC,Recreation
+S94,S,RC,Business & Consumer Services
+S95,S,RC,Business & Consumer Services
+S96,S,RC,Business & Consumer Services
