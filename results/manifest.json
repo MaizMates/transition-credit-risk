@@ -1,0 +1,30 @@
+{
+  "config_sha256": "90861cb355f88f7b5016d511ba0dbb2bfe31007b5c9b18190e611af6893cd3b9",
+  "inputs_sha256": {
+    "eurostat_air_emissions.csv": "c8505f0153074c776dfe563a225764c6ad86eec898d3ac8ba7759c5f9fafe462",
+    "eurostat_nama_a64.csv": "a9790adc9270846bc86bea9fba2b121ae349331cb0cfd934c00a37f53b4aba74",
+    "ngfs_phase5.csv": "f7aa3cc59d295bc7c78498e143f743052d69b52569010e65808c3c8a6ca66e69",
+    "optvarEurope.csv": "16400d75b96edb494737b904795415e2d9c48057f6995c6578382e4a5ab12d70",
+    "vebitdaEurope.csv": "aa9b7822aef469f0b2c13a353a9ab6704ea6b1323867da0c737a9bb1416f3f35",
+    "cq5_weights.csv": "3d54b6c3741e7b32a7d457e99ba71f5dc81322d16aa481909e9ec6be94c7af4c",
+    "cr9_rows.csv": "b0781d807a9b1706e595240b2c0f44cd4de6ea10600e4212073636099eae4a3d",
+    "sector_map.csv": "cd7b5f6ffa7753af3686e47233804e38f671eca9dc32dd40b29243a96d3640f1"
+  },
+  "ngfs": "NGFS Phase V, IIASA Scenario Explorer ngfs_phase_5",
+  "eur_per_usd2010_at_2023_prices": 0.9791020000581826,
+  "anchors_pd": {
+    "IT": 0.016944993121264802,
+    "DE": 0.003931042862161846
+  },
+  "loans_valid": 115,
+  "loans_rejected": 1,
+  "projection_cells_with_ebitda_le_0": 91,
+  "scenarios_skipped": [
+    "IT/Low demand: no NiGEM transition GDP",
+    "DE/Low demand: no NiGEM transition GDP"
+  ],
+  "exposure_eur_m": {
+    "in": 318701.0,
+    "valid": 318355.57588052587
+  }
+}

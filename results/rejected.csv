@@ -1,0 +1,2 @@
+loan_id,firm_id,country,nace,size_class,revenue,ebitda,financial_debt,exposure,ghg_t,rule
+IT-H53,IT-H53,IT,H53,all,9050500000.0,-211100000.0000001,-2660798353.3102193,345424119.47411156,67511.97,ebitda <= 0 (Merton asset value undefined)

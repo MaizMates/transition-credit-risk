@@ -1,5 +1,4 @@
 .venv/
 data/raw/
-results/
 *.duckdb
 __pycache__/
