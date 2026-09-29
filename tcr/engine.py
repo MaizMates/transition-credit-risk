@@ -7,11 +7,13 @@ from scipy.stats import norm
 def project(firms, sc, pi=0.0, k_repl=0.0):
     """Margin path m[i,t] and asset-to-debt ratio V/D[i,t] for one country-scenario path."""
     g = sc["gdp"]
-    E = np.vstack([sc["E"][s] for s in firms["iam_sector"]])
+    # Net IAM emissions turn negative with CCS/removals; a firm's Scope 1 cost cannot, so floor at zero.
+    E = np.maximum(np.vstack([sc["E"][s] for s in firms["iam_sector"]]), 0.0)
     e = firms["e0"][:, None] * E / g[None, :]                 # tonnes CO2e per EUR of revenue
     dP = sc["P"] - sc["P"][0]                                  # EUR per tonne above base year
     margin = firms["margin"][:, None]
-    m = margin - (1 - pi) * dP[None, :] * e                    # EBITDA / revenue
+    priced = firms.get("priced", np.ones(len(margin), bool))[:, None]
+    m = margin - (1 - pi) * dP[None, :] * e * priced           # EBITDA / revenue
     abated = np.maximum(0.0, -np.diff(e, axis=1, prepend=e[:, :1]))
     rev0_over_d0 = firms["v_over_d"] / (firms["mult"] * firms["margin"])
     debt = g[None, :] + np.cumsum(abated * k_repl * g[None, :], axis=1) * rev0_over_d0[:, None]  # D_t / D_0

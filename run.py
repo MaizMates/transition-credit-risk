@@ -25,8 +25,9 @@ def anchors(path):
     return {c: s / n for c, (s, n) in acc.items()}
 
 
-def simulate(firms, paths, anchor, pi, k_repl, sigma_scale):
+def simulate(firms, paths, anchor, pi, k_repl, sigma_scale, unpriced=()):
     """PD[i,t] per (country, scenario), with c calibrated per country x section at t0."""
+    firms = {**firms, "priced": np.array([s not in unpriced for s in firms["iam_sector"]])}
     sigma = firms["sigma"] * sigma_scale
     dd0 = engine.distance_to_default(firms["v_over_d"][:, None], sigma)[:, 0]
     c = np.zeros(len(dd0))
@@ -80,9 +81,9 @@ def main(cfg_path):
     assert abs(exp_in - exp_out) < 1e-6 * exp_in, "exposure reconciliation failed"
     anchor = anchors(REF / "cr9_rows.csv")
 
-    def variant(model, pi=run["pass_through"], sigma_scale=1.0):
+    def variant(model, pi=run["pass_through"], sigma_scale=1.0, unpriced=tuple(run["unpriced_sectors"])):
         paths, skipped = scenarios.load(RAW / "ngfs_phase5.csv", model, run["countries"], grid, eur)
-        pds, nonpos = simulate(firms, paths, anchor, pi, run["k_repl"], sigma_scale)
+        pds, nonpos = simulate(firms, paths, anchor, pi, run["k_repl"], sigma_scale, unpriced)
         return aggregate(firms, pds, grid, run["reference_scenario"], run["lgd"]), skipped, nonpos
 
     (port, sect), skipped, nonpos = variant(run["reference_iam"])
@@ -95,13 +96,15 @@ def main(cfg_path):
         return [{"variant": label, "country": r["country"], "dpd_pp": r["dpd_pp"], "pd": r["pd"]} for r in rows
                 if r["scenario"] == "Net Zero 2050" and r["year"] == run["end_year"]]
 
-    sens_rows = nz2050(port, "Reference (GCAM, pi=0)")
+    sens_rows = nz2050(port, "Reference")
     for p in sens["pass_through"]:
-        sens_rows += nz2050(variant(run["reference_iam"], pi=p)[0][0], f"pass-through {p}")
+        sens_rows += nz2050(variant(run["reference_iam"], pi=p)[0][0], f"Pass-through {p:.0%}")
     for s in sens["sigma_scale"]:
-        sens_rows += nz2050(variant(run["reference_iam"], sigma_scale=s)[0][0], f"sigma x{s}")
+        sens_rows += nz2050(variant(run["reference_iam"], sigma_scale=s)[0][0], f"Volatility x{s}")
+    for u in sens["unpriced_sectors"]:
+        sens_rows += nz2050(variant(run["reference_iam"], unpriced=(u,))[0][0], f"{u} unpriced")
     for m in sens["iams"]:
-        sens_rows += nz2050(variant(m)[0][0], m.split(" ")[0])
+        sens_rows += nz2050(variant(m)[0][0], m.split(" ")[0].split("-")[0])
     report.write_csv(sens_rows, OUT / "sensitivity.csv")
 
     report.heatmap([r for r in sect if r["year"] in (2030, 2040, 2050) and r["scenario"] != run["reference_scenario"]

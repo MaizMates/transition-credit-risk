@@ -6,11 +6,16 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]          # reference categorical slots 1-3
 INK, INK2, SURFACE = "#0b0b0b", "#52514e", "#fcfcfb"
-DIVERGING = LinearSegmentedColormap.from_list("div", ["#2a78d6", "#f0efec", "#eb6834"])
+SEQUENTIAL = LinearSegmentedColormap.from_list("seq", ["#f0efec", "#86b6ef", "#2a78d6", "#184f95"])
+SECTION_NAMES = {"A": "Agriculture", "B": "Mining", "C": "Manufacturing", "D": "Electricity, gas", "E": "Water, waste",
+                 "F": "Construction", "G": "Trade", "H": "Transport", "I": "Accommodation, food", "J": "ICT",
+                 "L": "Real estate", "M": "Professional services", "N": "Administrative services", "P": "Education",
+                 "Q": "Health", "R": "Arts, recreation", "S": "Other services"}
+SHORT = {"Net Zero 2050": "NZ", "Delayed transition": "DT", "Current Policies": "CP"}
 plt.rcParams.update({"font.size": 9, "axes.edgecolor": INK2, "axes.labelcolor": INK, "text.color": INK,
                      "xtick.color": INK2, "ytick.color": INK2, "figure.facecolor": SURFACE, "axes.facecolor": SURFACE})
 
@@ -29,22 +34,23 @@ def heatmap(sector_rows, countries, scenarios, years, path):
     cols = [(s, y) for s in scenarios for y in years]
     vals = {(r["country"], r["section"], r["scenario"], r["year"]): r["dpd_pp"] for r in sector_rows}
     data = {c: np.array([[vals.get((c, sec, s, y), np.nan) for s, y in cols] for sec in sections]) for c in countries}
-    lim = max(np.nanmax(np.abs(d)) for d in data.values())
     for ax, c in zip(np.atleast_1d(axes), countries):
-        im = ax.imshow(data[c], cmap=DIVERGING, norm=TwoSlopeNorm(0, -lim, lim), aspect="auto")
+        im = ax.imshow(np.clip(data[c], 0, None), cmap=SEQUENTIAL, norm=Normalize(0, 10), aspect="auto")
         for i in range(len(sections)):
             for j in range(len(cols)):
                 v = data[c][i, j]
                 if abs(v) >= 0.01:
-                    ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=7, color=INK)
-        ax.set_xticks(range(len(cols)), [f"{s}\n{y}" for s, y in cols], fontsize=7)
-        ax.set_yticks(range(len(sections)), sections)
+                    ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=7,
+                            color="#ffffff" if v > 6 else INK)
+        ax.set_xticks(range(len(cols)), [f"{SHORT.get(s, s)} {y}" for s, y in cols], fontsize=7)
+        ax.set_yticks(range(len(sections)), [f"{k} {SECTION_NAMES.get(k, '')}" for k in sections])
         ax.set_title(c, loc="left", fontweight="bold")
         ax.tick_params(length=0)
         for sp in ax.spines.values():
             sp.set_visible(False)
-    fig.colorbar(im, ax=axes, shrink=0.6, label="PD change vs Current Policies (pp)")
-    fig.suptitle("Transition-risk PD shift by NACE section (NGFS Phase V, GCAM)", x=0.02, ha="left", fontweight="bold")
+    fig.colorbar(im, ax=axes, shrink=0.6, extend="max", label="PD change vs Current Policies (pp, colour capped at 10)")
+    fig.suptitle("Transition-risk PD shift by NACE section vs Current Policies (NGFS Phase V, GCAM; NZ = Net Zero 2050, "
+                 "DT = Delayed transition)", x=0.02, ha="left", fontweight="bold", fontsize=10)
     fig.savefig(path, dpi=160, bbox_inches="tight")
     plt.close(fig)
 
@@ -58,7 +64,6 @@ def paths(portfolio_rows, countries, scenarios, path):
             x = [r["year"] for r in rows]
             y = [100 * r["pd"] for r in rows]
             ax.plot(x, y, color=col, lw=2, label=s)
-            ax.annotate(s, (x[-1], y[-1]), xytext=(4, 0), textcoords="offset points", fontsize=7, color=INK2, va="center")
         ax.set_title(c, loc="left", fontweight="bold")
         ax.set_ylabel("Portfolio PD (%)")
         ax.grid(axis="y", color="#e4e3df", lw=0.6)

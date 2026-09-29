@@ -1,6 +1,6 @@
 # Transition credit risk engine: design
 
-Date: 2026-09-28. Owner: Marco Izzo. Status: approved in brainstorming, pending spec review.
+Date: 2026-09-28. Owner: Marco Izzo. Status: implemented as v1 on 2026-09-29; deviations logged in docs/week1-verification.md.
 
 ## 1. Purpose
 

@@ -8,6 +8,7 @@ chart_scenarios = ["Net Zero 2050", "Delayed transition", "Current Policies"]
 pass_through = 0.0                # share of carbon cost passed on to prices
 k_repl = 0.0                      # abatement capex per tonne; OP 281 value not traceable, channel off
 lgd = 0.40                        # F-IRB senior unsecured corporates, Art. 161(1) CRR as amended by Reg. (EU) 2024/1623
+unpriced_sectors = []            # IAM sectors exempt from the carbon price (e.g. "AFOLU")
 v_over_d = 1.0                    # representative-firm mode: level absorbed by calibration
 
 [conversion]                      # US$2010 -> EUR at 2023 prices
@@ -18,4 +19,5 @@ deflator_base = 122.348             # same series, 2023
 [sensitivity]
 pass_through = [0.5]
 sigma_scale = [0.8, 1.2]
+unpriced_sectors = ["AFOLU"]
 iams = ["MESSAGEix-GLOBIOM 2.0-M-R12-NGFS", "REMIND-MAgPIE 3.3-4.8"]

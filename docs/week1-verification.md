@@ -15,3 +15,18 @@ Date: 2026-09-29. Decisions taken autonomously on Marco's instruction; to be rev
 | Damodaran | `optvarEurope.xls` (std dev of firm value) and `vebitdaEurope.xls` (EV/EBITDA, positive-EBITDA firms and all firms), updated January 2026 | Europe datasets, no global fallback; use "Only positive EBITDA firms" multiple |
 
 Still open: BACH download route, CR9 anchors (two IRB banks per country), Banca d'Italia and Destatis sector rates, IMF (2019) replacement cost, USD/EUR 2010 and deflator.
+
+## Decisions after the draft spec (2026-09-29)
+
+| Item | Decision | Reason |
+|---|---|---|
+| Portfolio | Representative-firm mode: one loan per country x A64 industry (Eurostat 2023) | BACH requires a registered login; leverage cancels in this mode |
+| Margin | (B1G - D1 - D29X39) / P1 from nama_10_a64 | B2A3G not published in nama_10_a64; same denominator as emission intensity |
+| Exposure weights | Pillar 3 EU CQ5 at 31 Dec 2025: Intesa Sanpaolo (IT), Deutsche Bank (DE); sections K, O excluded | Public bank-book sector mix; AnaCredit by NACE not available via ECB API |
+| Anchor class | CR9 "Corporates - Other" / "General" (CRR3 classes), not "Corporates - SME" | CRR3 templates (Reg. 2024/3172) no longer separate corporate SMEs |
+| Anchor values | IT 1.69% (Intesa, UniCredit), DE 0.39% (Deutsche Bank, DZ BANK) | DE historical column = 2025 observed (CRR3 phase-in, DB p.139) |
+| Sector relatives | Not used in v1: uniform anchor within country | Banca d'Italia and Destatis extraction left for v2 |
+| k_repl | 0, no sensitivity value | OP 281 value not reported; IMF (2019) article gives per-technology costs only |
+| Negative IAM emissions | Ratio floored at 0 | CCS/removals make net sector emissions negative; would create carbon revenue |
+| AFOLU pricing | Priced by default; sensitivity with AFOLU unpriced | Drives most of the Italian portfolio result |
+| Damodaran multiple | First "EV/EBITDA" column (positive-EBITDA firms) | File has two columns with the same name |
