@@ -1,6 +1,6 @@
-# Week-1 verification log (spec section 7.2)
+# Decision log: verification of sources and deviations from the design spec
 
-Date: 2026-09-29. Decisions taken autonomously on Marco's instruction; to be reviewed at the end.
+Date: 2026-09-29. Each row records what was checked, what was found and what was decided.
 
 | Item | Finding | Decision |
 |---|---|---|

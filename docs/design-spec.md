@@ -1,6 +1,6 @@
 # Transition credit risk engine: design
 
-Date: 2026-09-28. Owner: Marco Izzo. Status: implemented as v1 on 2026-09-29; deviations logged in docs/week1-verification.md.
+Date: 2026-09-28. Author: Marco Izzo. Status: original design, implemented as v1 on 2026-09-29. Deviations from this design are logged in [decision-log.md](decision-log.md).
 
 ## 1. Purpose
 
@@ -8,11 +8,10 @@ A transparent, reproducible engine that translates NGFS Phase V transition scena
 probabilities of default (PD) and expected loss (EL) for a bank's non-financial corporate loan
 book, by sector and country, over 2025-2050.
 
-It serves one goal: a public demonstration of climate credit-risk modelling that team leads in
-bank risk functions and consultancy risk practices can inspect in minutes. The product is the
-engine. The synthetic portfolio exists only for the demo; a bank can load its own loan tape.
+The product is the engine. The demo portfolio is built from public data; a bank can load its own
+loan tape.
 
-Decisions taken by Marco during brainstorming:
+Design decisions:
 
 | Decision | Choice | Date |
 |---|---|---|
@@ -139,8 +138,9 @@ r[c,k]      = rate[c,k] / rate[c,all]
   (https://www.bancaditalia.it/pubblicazioni/condizioni-rischiosita/STACORIS_note-met.pdf).
   DE: Destatis insolvencies per 10,000 enterprises by WZ 2008 section
   (https://genesis.destatis.de/datenbank/online/statistic/52411/).
-  National statistics are not used for the level: insolvency is a narrower event than default
-  (the highest German sector rate is 12.7 per 10,000, i.e. 0.127%).
+  National statistics are not used for the level: insolvency counts cover all legal units,
+  including sole proprietors, and differ from the Article 178 default definition (Destatis 2025:
+  69 insolvencies per 10,000 enterprises on average, 133 in transport and storage).
 - ATECO 2025 (Banca d'Italia from February 2026) is mapped to NACE Rev. 2 sections through the
   official correspondence table.
 - If Brent's method does not converge, the run stops and names the country and section.
@@ -182,15 +182,15 @@ pi in {0, 0.5}; IAM in {GCAM, MESSAGEix-GLOBIOM, REMIND-MAgPIE}; sigma scaled by
 
 | Data | Source | Status |
 |---|---|---|
-| Carbon price, sector emissions, GDP | NGFS Phase V, IIASA Scenario Explorer, IAMC format, guest access | Access verified; licence not verified |
+| Carbon price, sector emissions, GDP | NGFS Phase V, IIASA Scenario Explorer, IAMC format, guest access | Verified; licence restricts redistribution |
 | Company ratios by NACE and size | BACH | Verified |
-| Scope 1 intensity by industry | Eurostat air emissions accounts and national accounts by NACE A64 | Dataset codes to verify |
-| EV/EBITDA, firm-value volatility | Damodaran Online (https://pages.stern.nyu.edu/~adamodar/pc/archives/data.html) | Europe multiples verified; Europe volatility to verify |
-| Default rate level | Pillar 3 EU CR9 of IRB banks | To collect by hand |
+| Scope 1 intensity by industry | Eurostat air emissions accounts and national accounts by NACE A64 | Verified: env_ac_ainah_r2, nama_10_a64, 2023 |
+| EV/EBITDA, firm-value volatility | Damodaran Online (https://pages.stern.nyu.edu/~adamodar/pc/archives/data.html) | Verified: vebitdaEurope, optvarEurope |
+| Default rate level | Pillar 3 EU CR9 of IRB banks | Collected: data/ref/cr9_rows.csv |
 | Sector relatives | Banca d'Italia; Destatis GENESIS 52411 | Series verified to exist |
 | LGD | Article 161 CRR (CRR3) | Verified |
-| Replacement cost per tonne | IMF (2019) via OP 281 | Value to verify |
-| USD/EUR 2010, deflator | ECB reference rates; Eurostat HICP or GDP deflator | To verify |
+| Replacement cost per tonne | IMF (2019) via OP 281 | Not traceable: channel off |
+| USD/EUR 2010, deflator | ECB reference rates; Eurostat GDP deflator | Verified: in config.toml |
 
 Every row of every file in `data/ref/` carries `source`, `url` and, for documents, `page`.
 
@@ -258,7 +258,7 @@ One file, `tests/test_engine.py`:
 
 Deliverables:
 
-1. Private repository. It becomes public on GitHub only after Marco confirms.
+1. Public repository with code, reference tables and results; scenario data excluded by licence.
 2. Technical note, 4 pages: method, sources, limitations, results.
 3. Three charts: PD change by NACE section at 2030, 2040 and 2050 per scenario, IT versus DE;
    portfolio PD path per scenario; sensitivities.

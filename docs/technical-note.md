@@ -37,7 +37,7 @@ The constant c is solved with Brent's method, per country and NACE section. It s
 | IT | Intesa Sanpaolo (A-IRB, F-IRB), UniCredit (A-IRB, F-IRB) | 226,059 | 1.69% |
 | DE | Deutsche Bank (A-IRB, F-IRB), DZ BANK (F-IRB) | 136,624 | 0.39% |
 
-The regulatory default definition (Article 178 CRR) is identical in both countries. The German anchor comes mostly from Deutsche Bank. Its "historical" column equals the 2025 observed rate because the five-year average is being phased in for the new CRR3 exposure classes (Deutsche Bank Pillar 3 2025, p. 139). A single year in a low-default period can understate the through-the-cycle rate. Every row, with bank, page and URL, is in `data/ref/cr9_rows.csv`.
+The regulatory default definition (Article 178 CRR) is identical in both countries. The German anchor comes mostly from Deutsche Bank. Its "historical" column equals the 2025 observed rate because the five-year average is being phased in for the new CRR3 exposure classes (Deutsche Bank Pillar 3 2025, p. 139). A single year in a low-default period can understate the through-the-cycle rate. A cross-check points the same way: Destatis reports 69 insolvencies per 10,000 enterprises in Germany in 2025 ([Destatis, March 2026](https://www.destatis.de/DE/Presse/Pressemitteilungen/2026/03/PD26_085_52411.html)), i.e. 0.69%, above the 0.39% anchor, although the populations differ (all legal units, including sole proprietors, against IRB-rated corporates). Every row, with bank, page and URL, is in `data/ref/cr9_rows.csv`.
 
 ### 2.3 Portfolio (representative-firm mode)
 
@@ -103,7 +103,7 @@ Model choice changes the 2050 result by up to 0.7 pp in Italy. The pricing of ag
 1. **One firm per industry.** The representative-firm mode ignores dispersion within industries. Because the Merton PD is convex, this understates the tail; BACH quartiles address it.
 2. **PD jumps to 100%.** Where EBITDA reaches zero the PD becomes 1. This happened in 91 of the 17,940 projection cells of the reference run (115 loans, 6 scenarios, 26 years), concentrated in air and sea transport and agriculture. The rule is conservative and produces jumps.
 3. **Borrowed volatilities and multiples.** Asset volatilities and multiples come from listed European peers and are applied to whole industries.
-4. **Uniform anchor within a country.** Sector differences in the starting PD come only from volatility. Sector relatives (Banca d'Italia deterioration rates by ATECO, Destatis insolvency frequency by WZ 2008) are planned.
+4. **Uniform anchor within a country.** Sector differences in the starting PD come only from volatility. Full sector series need registered access (Destatis GENESIS); the public Destatis release covers four of seventeen sections, so sector relatives are left to v2.
 5. **Fixed balance sheet and base year.** Exposures are static, 2023 financials are taken as 2025 values, and one bank's CQ5 book stands in for each country.
 6. **Omitted channels.** The energy-cost channel via Scope 2, the Scope 3 revenue channel and physical risk from OP 281 are not in v1. The abatement-investment channel is implemented but switched off, because its calibration value is not traceable.
 7. **Public inputs only.** The engine uses only public data and public methodology.
