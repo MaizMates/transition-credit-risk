@@ -30,3 +30,16 @@ Still open: BACH download route, CR9 anchors (two IRB banks per country), Banca 
 | Negative IAM emissions | Ratio floored at 0 | CCS/removals make net sector emissions negative; would create carbon revenue |
 | AFOLU pricing | Priced by default; sensitivity with AFOLU unpriced | Drives most of the Italian portfolio result |
 | Damodaran multiple | First "EV/EBITDA" column (positive-EBITDA firms) | File has two columns with the same name |
+
+## BACH firm-level mode (2026-10-03)
+
+| Item | Decision | Reason |
+|---|---|---|
+| Source | BACH full database, release 14 Sep 2026 (`bach.zip`, file `20260914.csv`), year 2023, variable sample, size classes 1a/1b/2, divisions | Free registration; 2023 has the widest IT and DE coverage |
+| Margin | R32 (gross operating profit / net turnover), drawn above the 0.5% floor | Floor-truncation would create artificial near-zero-margin firms; mean 8.6% of firms per cell excluded |
+| Leverage | Net debt / gross operating profit = 1 / R27, quartiles mapped exactly; cells with R27 Q1 <= 0 excluded | R27 is unstable near zero net debt; linear interpolation of R27 produced unbounded leverage |
+| Leverage cap | 20x (11.8% of draws), sensitivities 10x and 40x | Without a cap the calibration puts all default risk in the tail (DE section Q failed to calibrate); ECB leveraged-transactions guidance (2017) treats > 6x as highly leveraged |
+| Net cash | Net debt <= 0 gives no default barrier, PD 0 (6.7% of draws) | Merton barrier undefined |
+| Exposure | CQ5 section split across cells by BACH L2 (amounts owed to credit institutions) | Bank-debt weights within section |
+| Fallback | Sections without usable BACH cells keep the representative firm: DE A, B, E, I; IT P, Q | Coverage gaps in BACH 2023 |
+| Calibration bracket | Brent on [-20, 20]; failure names country and section | Spec section 9 |

@@ -11,6 +11,14 @@ lgd = 0.40                        # F-IRB senior unsecured corporates, Art. 161(
 unpriced_sectors = []            # IAM sectors exempt from the carbon price (e.g. "AFOLU")
 v_over_d = 1.0                    # representative-firm mode: level absorbed by calibration
 
+[portfolio]
+mode = "bach"                     # "bach" (firm-level from BACH quartiles) or "representative" (one firm per A64 industry)
+bach_year = "2023"                # latest BACH year with full IT and DE coverage
+firms_per_cell = 200              # simulated firms per BACH division x size cell
+seed = 20260929
+margin_floor = 0.005              # firms with EBITDA margin below 0.5% excluded (t0 rule EBITDA > 0)
+leverage_cap = 20.0               # net debt / gross operating profit capped at 20x (ECB leveraged-transactions guidance: >6x highly leveraged)
+
 [conversion]                      # US$2010 -> EUR at 2023 prices
 usd_per_eur_2010 = 1.3257166666667  # ECB EXR.A.USD.EUR.SP00.A, 2010
 deflator_2010 = 94.258              # Eurostat nama_10_gdp PD15_EUR B1GQ EA20
@@ -21,3 +29,5 @@ pass_through = [0.5]
 sigma_scale = [0.8, 1.2]
 unpriced_sectors = ["AFOLU"]
 iams = ["MESSAGEix-GLOBIOM 2.0-M-R12-NGFS", "REMIND-MAgPIE 3.3-4.8"]
+leverage_cap = [10.0, 40.0]
+representative_firm = true        # compare with one firm per A64 industry

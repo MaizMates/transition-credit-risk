@@ -90,3 +90,17 @@ def test_loan_tape_validation_rules():
     assert [r["rule"] for r in rej] == ["loan_id not unique", "ebitda <= 0 (Merton asset value undefined)",
                                         "country not in scope", "nace not mapped", "negative debt or exposure",
                                         "missing amount"]
+
+
+def test_bach_quantile_draw_and_inverse():
+    q = (2.0, 10.0, 30.0)
+    assert np.allclose(portfolio.quantile_draw(*q, np.array([0.25, 0.5, 0.75])), q)
+    for v in (5.0, 10.0, 20.0):
+        u = portfolio.quantile_position(*q, v)
+        assert abs(portfolio.quantile_draw(*q, np.array([u]))[0] - v) < 1e-9
+
+
+def test_a64_codes_cover_bach_divisions():
+    assert portfolio.covers("C10-C12", "C11") and portfolio.covers("C31_C32", "C32")
+    assert portfolio.covers("B", "B06") and portfolio.covers("C23", "C23")
+    assert not portfolio.covers("C10-C12", "C13") and not portfolio.covers("C23", "C24")

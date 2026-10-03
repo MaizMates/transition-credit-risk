@@ -87,6 +87,94 @@ def representative_tape(raw, ref, countries, v_over_d):
     return tape, smap
 
 
+BACH_SIZES = {"1a": "small", "1b": "medium", "2": "large"}
+
+
+def covers(a64, division):
+    """True if the A64 code (e.g. "C10-C12", "C31_C32", "B") contains the NACE division (e.g. "C11")."""
+    if a64 == division or (len(a64) == 1 and division[0] == a64):
+        return True
+    parts = a64.replace("_", "-").split("-")
+    return (len(parts) == 2 and division[0] == a64[0] and division[1:].isdigit()
+            and int(parts[0][1:]) <= int(division[1:]) <= int(parts[1][1:]))
+
+
+def quantile_draw(q1, q2, q3, u):
+    """Piecewise-linear quantile function through BACH Q1, median, Q3, extended linearly beyond them."""
+    return np.where(u < 0.5, q2 + (u - 0.5) * (q2 - q1) / 0.25, q2 + (u - 0.5) * (q3 - q2) / 0.25)
+
+
+def quantile_position(q1, q2, q3, v):
+    """Inverse of quantile_draw: the probability level at which the quantile function equals v, clipped to [0, 1)."""
+    if v <= q2:
+        u = 0.5 + (v - q2) * 0.25 / (q2 - q1) if q2 > q1 else 0.0
+    else:
+        u = 0.5 + (v - q2) * 0.25 / (q3 - q2) if q3 > q2 else 1.0
+    return min(max(u, 0.0), 0.999)
+
+
+def bach_tape(raw, ref, countries, year, firms_per_cell, seed, margin_floor, v_over_d, leverage_cap):
+    """Firm-level tape from BACH quartiles (division x size class, variable sample).
+
+    margin = R32 (gross operating profit / net turnover), drawn above the margin floor (EBITDA > 0 rule);
+    leverage = net debt / gross operating profit, the inverse of R27, whose quartiles map one to one when R27 Q1 > 0.
+    Exposure = CQ5 section loans split across cells by amounts owed to credit institutions (L2).
+    Sections without BACH cells keep the representative firm. Returns (tape, smap, stats).
+    """
+    raw = Path(raw)
+    pq = raw / "bach_it_de.parquet"
+    if not pq.exists():
+        src = next(raw.glob("2*.csv"))  # file inside bach.zip, named by release date
+        duckdb.sql(f"""copy (select country, year, sector, size, sample, nb_firms, total_assets, turnover,
+            r32_q1, r32_q2, r32_q3, r27_q1, r27_q2, r27_q3, L2_wm
+            from read_csv('{src}', delim=';', header=true, skip=1, all_varchar=true)
+            where country in ('IT','DE')) to '{pq}' (format parquet)""")
+    rep, smap = representative_tape(raw, ref, countries, v_over_d)
+    e0 = {(r["country"], r["nace"]): r["ghg_t"] / r["revenue"] for r in rep}
+    cq5 = {(r["country"], r["section"]): float(r["gross_carrying_eur_m"]) for r in read_csv(Path(ref) / "cq5_weights.csv")}
+    cells = duckdb.sql(f"""select country, sector, size, cast(nb_firms as double), cast(turnover as double),
+        cast(total_assets as double) * cast(L2_wm as double) / 100,
+        cast(r32_q1 as double), cast(r32_q2 as double), cast(r32_q3 as double),
+        cast(r27_q1 as double), cast(r27_q2 as double), cast(r27_q3 as double)
+        from '{pq}' where year = '{year}' and sample = '0' and size in ('1a','1b','2') and length(sector) = 3
+        and r32_q1 is not null and r32_q2 is not null and r32_q3 is not null and r27_q1 is not null and cast(r27_q1 as double) > 0
+        and r27_q2 is not null and r27_q3 is not null and cast(nb_firms as double) > 0""").fetchall()
+    rows = []
+    for c, div, size, n, turnover, bank, *q in cells:
+        a64 = next((k for k in smap if covers(k, div)), None)
+        if c in countries and a64 and bank and bank > 0:
+            rows.append((c, div, size, n, turnover, bank, a64, smap[a64]["section"], q))
+    bank_section = {}
+    for c, _, _, _, _, bank, _, sec, _ in rows:
+        bank_section[(c, sec)] = bank_section.get((c, sec), 0.0) + bank
+    rng = np.random.default_rng(seed)
+    tape, excluded_share, net_cash, capped = [], [], 0, 0
+    for c, div, size, n, turnover, bank, a64, sec, q in rows:
+        u = rng.random((2, firms_per_cell))
+        u0 = quantile_position(*q[:3], 100 * margin_floor)   # share of firms below the margin floor, excluded
+        excluded_share.append(u0)
+        margin = quantile_draw(*q[:3], u0 + (1 - u0) * u[0]) / 100
+        x = quantile_draw(100 / q[5], 100 / q[4], 100 / q[3], u[1])  # net debt / gross operating profit
+        net_cash += int((x <= 0).sum())
+        capped += int((x > leverage_cap).sum())
+        x = np.minimum(x, leverage_cap)
+        revenue = turnover * 1e3 / n
+        exposure = cq5.get((c, sec), 0.0) * 1e6 * bank / bank_section[(c, sec)] / firms_per_cell
+        for k in range(firms_per_cell):
+            ebitda = margin[k] * revenue
+            tape.append({"loan_id": f"{c}-{div}-{size}-{k}", "firm_id": f"{c}-{div}-{size}-{k}", "country": c,
+                         "nace": a64, "size_class": BACH_SIZES[size], "revenue": revenue, "ebitda": ebitda,
+                         "financial_debt": ebitda * x[k] if x[k] > 0 else 0.0, "exposure": exposure,
+                         "ghg_t": e0[(c, a64)] * revenue})
+    covered = set(bank_section)
+    tape += [r for r in rep if (r["country"], smap[r["nace"]]["section"]) not in covered]
+    stats = {"bach_cells": len(rows), "bach_firms": len(rows) * firms_per_cell, "mean_share_below_margin_floor": float(np.mean(excluded_share)),
+             "net_cash_draws": net_cash, "leverage_capped_draws": capped, "sections_from_representative_firm": sorted(
+                 {f'{r["country"]}-{smap[r["nace"]]["section"]}' for r in rep
+                  if (r["country"], smap[r["nace"]]["section"]) not in covered})}
+    return tape, smap, stats
+
+
 def to_arrays(tape, smap, raw):
     """Firm arrays for the engine."""
     dam = damodaran(raw)
@@ -103,5 +191,7 @@ def to_arrays(tape, smap, raw):
         "sigma": np.array([sig[x] for x in d]),
         "exposure": np.array([r["exposure"] for r in tape]),
     }
-    f["v_over_d"] = f["mult"] * np.array([r["ebitda"] / r["financial_debt"] for r in tape])
+    # Net debt <= 0 (net cash): no default barrier, V/D infinite, PD 0.
+    f["v_over_d"] = f["mult"] * np.array([r["ebitda"] / r["financial_debt"] if r["financial_debt"] > 0 else np.inf
+                                          for r in tape])
     return f

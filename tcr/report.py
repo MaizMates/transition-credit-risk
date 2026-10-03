@@ -78,7 +78,7 @@ def paths(portfolio_rows, countries, scenarios, path):
 def sensitivity(sens_rows, countries, path):
     """2050 portfolio PD change vs Current Policies under Net Zero 2050, by variant."""
     variants = list(dict.fromkeys(r["variant"] for r in sens_rows))
-    fig, ax = plt.subplots(figsize=(9, 3.8))
+    fig, ax = plt.subplots(figsize=(max(9, 1.1 * len(variants)), 4.2))
     w = 0.8 / len(countries)
     for k, (c, col) in enumerate(zip(countries, SERIES)):
         vals = [next(r["dpd_pp"] for r in sens_rows if r["variant"] == v and r["country"] == c) for v in variants]
@@ -87,7 +87,7 @@ def sensitivity(sens_rows, countries, path):
         for x, v in zip(xs, vals):
             ax.text(x, v, f"{v:.2f}", ha="center", va="bottom" if v >= 0 else "top", fontsize=7, color=INK2)
     ax.axhline(0, color=INK2, lw=0.8)
-    ax.set_xticks(range(len(variants)), variants, fontsize=7)
+    ax.set_xticks(range(len(variants)), variants, fontsize=7, rotation=25, ha="right")
     ax.set_ylabel("PD change 2050 (pp)")
     ax.legend(frameon=False)
     for sp in ("top", "right"):

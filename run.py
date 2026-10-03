@@ -33,7 +33,10 @@ def simulate(firms, paths, anchor, pi, k_repl, sigma_scale, unpriced=()):
     c = np.zeros(len(dd0))
     for key in {(a, b) for a, b in zip(firms["country"], firms["section"])}:
         i = (firms["country"] == key[0]) & (firms["section"] == key[1])
-        c[i] = engine.calibrate(dd0[i], firms["exposure"][i], anchor[key[0]])
+        try:
+            c[i] = engine.calibrate(dd0[i], firms["exposure"][i], anchor[key[0]])
+        except ValueError as e:
+            raise SystemExit(f"calibration failed for country {key[0]}, NACE section {key[1]}: {e}")
     out, nonpos = {}, 0
     for (country, s), sc in paths.items():
         i = firms["country"] == country
@@ -73,15 +76,25 @@ def main(cfg_path):
     grid = np.arange(run["base_year"], run["end_year"] + 1)
     eur = conv["deflator_base"] / conv["deflator_2010"] / conv["usd_per_eur_2010"]
 
-    tape, smap = portfolio.representative_tape(RAW, REF, run["countries"], run["v_over_d"])
-    ok, rejected = portfolio.validate(tape, run["countries"], set(smap))
-    firms = portfolio.to_arrays(ok, smap, RAW)
-    exp_in = sum(np.nan_to_num(r["exposure"]) for r in tape)
-    exp_out = firms["exposure"].sum() + sum(np.nan_to_num(r["exposure"]) for r in rejected)
-    assert abs(exp_in - exp_out) < 1e-6 * exp_in, "exposure reconciliation failed"
+    pf = cfg["portfolio"]
+
+    def build(mode, leverage_cap=pf["leverage_cap"]):
+        if mode == "bach":
+            tape, smap, stats = portfolio.bach_tape(RAW, REF, run["countries"], pf["bach_year"], pf["firms_per_cell"],
+                                                    pf["seed"], pf["margin_floor"], run["v_over_d"], leverage_cap)
+        else:
+            (tape, smap), stats = portfolio.representative_tape(RAW, REF, run["countries"], run["v_over_d"]), {}
+        ok, rejected = portfolio.validate(tape, run["countries"], set(smap))
+        firms = portfolio.to_arrays(ok, smap, RAW)
+        exp_in = sum(np.nan_to_num(r["exposure"]) for r in tape)
+        exp_out = firms["exposure"].sum() + sum(np.nan_to_num(r["exposure"]) for r in rejected)
+        assert abs(exp_in - exp_out) < 1e-6 * exp_in, "exposure reconciliation failed"
+        return firms, ok, rejected, exp_in, stats
+
+    firms, ok, rejected, exp_in, stats = build(pf["mode"])
     anchor = anchors(REF / "cr9_rows.csv")
 
-    def variant(model, pi=run["pass_through"], sigma_scale=1.0, unpriced=tuple(run["unpriced_sectors"])):
+    def variant(model, pi=run["pass_through"], sigma_scale=1.0, unpriced=tuple(run["unpriced_sectors"]), firms=firms):
         paths, skipped = scenarios.load(RAW / "ngfs_phase5.csv", model, run["countries"], grid, eur)
         pds, nonpos = simulate(firms, paths, anchor, pi, run["k_repl"], sigma_scale, unpriced)
         return aggregate(firms, pds, grid, run["reference_scenario"], run["lgd"]), skipped, nonpos
@@ -105,6 +118,10 @@ def main(cfg_path):
         sens_rows += nz2050(variant(run["reference_iam"], unpriced=(u,))[0][0], f"{u} unpriced")
     for m in sens["iams"]:
         sens_rows += nz2050(variant(m)[0][0], m.split(" ")[0].split("-")[0])
+    for cap in sens.get("leverage_cap", []) if pf["mode"] == "bach" else []:
+        sens_rows += nz2050(variant(run["reference_iam"], firms=build("bach", cap)[0])[0][0], f"Leverage cap {cap:.0f}x")
+    if sens.get("representative_firm") and pf["mode"] == "bach":
+        sens_rows += nz2050(variant(run["reference_iam"], firms=build("representative")[0])[0][0], "Representative firm")
     report.write_csv(sens_rows, OUT / "sensitivity.csv")
 
     report.heatmap([r for r in sect if r["year"] in (2030, 2040, 2050) and r["scenario"] != run["reference_scenario"]
@@ -116,7 +133,8 @@ def main(cfg_path):
 
     manifest = {
         "config_sha256": sha256(cfg_path),
-        "inputs_sha256": {p.name: sha256(p) for p in sorted(RAW.glob("*.csv")) + sorted(REF.glob("*.csv"))},
+        "inputs_sha256": {p.name: sha256(p) for p in sorted(p for p in RAW.glob("*.csv") if not p.name[0].isdigit()) +
+                          sorted(RAW.glob("*.parquet")) + sorted(REF.glob("*.csv"))},
         "ngfs": "NGFS Phase V, IIASA Scenario Explorer ngfs_phase_5",
         "eur_per_usd2010_at_2023_prices": eur,
         "anchors_pd": anchor,
@@ -124,10 +142,11 @@ def main(cfg_path):
         "projection_cells_with_ebitda_le_0": nonpos,
         "scenarios_skipped": skipped,
         "exposure_eur_m": {"in": exp_in / 1e6, "valid": float(firms["exposure"].sum() / 1e6)},
+        "portfolio_mode": pf["mode"], "portfolio_stats": stats,
     }
     (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2))
-    print(json.dumps({k: manifest[k] for k in ("anchors_pd", "loans_valid", "loans_rejected",
-                                                "projection_cells_with_ebitda_le_0", "scenarios_skipped")}, indent=2))
+    print(json.dumps({k: manifest[k] for k in ("anchors_pd", "loans_valid", "loans_rejected", "projection_cells_with_ebitda_le_0",
+                                                "scenarios_skipped", "portfolio_mode", "portfolio_stats")}, indent=2))
 
 
 if __name__ == "__main__":

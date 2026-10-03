@@ -39,18 +39,19 @@ The constant c is solved with Brent's method, per country and NACE section. It s
 
 The regulatory default definition (Article 178 CRR) is identical in both countries. The German anchor comes mostly from Deutsche Bank. Its "historical" column equals the 2025 observed rate because the five-year average is being phased in for the new CRR3 exposure classes (Deutsche Bank Pillar 3 2025, p. 139). A single year in a low-default period can understate the through-the-cycle rate. A cross-check points the same way: Destatis reports 69 insolvencies per 10,000 enterprises in Germany in 2025 ([Destatis, March 2026](https://www.destatis.de/DE/Presse/Pressemitteilungen/2026/03/PD26_085_52411.html)), i.e. 0.69%, above the 0.39% anchor, although the populations differ (all legal units, including sole proprietors, against IRB-rated corporates). Every row, with bank, page and URL, is in `data/ref/cr9_rows.csv`.
 
-### 2.3 Portfolio (representative-firm mode)
+### 2.3 Portfolio
 
-v1 uses one representative firm per country and A64 industry (58 industries, NACE sections A-S excluding K and O). All inputs are for 2023:
+**Firm-level mode (reference).** The portfolio is simulated from BACH, the harmonised company-accounts database of the European Committee of Central Balance-Sheet Data Offices (release of 14 September 2026, year 2023, variable sample). For each NACE division and size class (small, medium, large) with complete quartiles, 200 firms are drawn: 320 cells and 64,000 firms for Italy and Germany together.
 
-- **Scope 1 intensity:** Eurostat air emissions accounts (`env_ac_ainah_r2`, GHG, thousand tonnes CO2e) divided by output (`nama_10_a64`, P1).
-- **Margin:** gross operating surplus over output, derived as B1G - D1 - D29X39 over P1 (`nama_10_a64`). Intensity and margin share the same denominator, so carbon cost over EBITDA equals price times emissions over operating surplus.
-- **Multiple and volatility:** Damodaran Europe, January 2026, "EV/EBITDA" of positive-EBITDA firms and standard deviation of firm value, mapped by industry (`data/ref/sector_map.csv`).
-- **Exposure:** gross loans to non-financial corporations by NACE section from Pillar 3 template EU CQ5 at 31 December 2025, Intesa Sanpaolo for IT (€161.1 billion in scope) and Deutsche Bank for DE (€157.6 billion). Each section is split across A64 industries by value-added share.
+- **Margin:** BACH ratio R32, gross operating profit over net turnover, drawn from a piecewise-linear quantile function through Q1, median and Q3. Firms below a 0.5% margin are excluded, consistent with the rule that EBITDA must be positive at t0. On average 8.6% of firms per cell fall below.
+- **Leverage:** net debt over gross operating profit, the inverse of BACH ratio R27. Its quartiles map one to one from R27 when R27 Q1 is positive; cells where it is not are excluded. Net debt at or below zero (6.7% of draws) means no default barrier and PD 0. Net debt is capped at 20 times gross operating profit (11.8% of draws). Near-zero profits otherwise produce unbounded leverage, and the calibration then puts all default risk in that tail. The ECB guidance on leveraged transactions (2017) already treats debt above 6 times EBITDA as highly leveraged, so the cap only trims the extreme tail. Caps of 10x and 40x are shown as sensitivities.
+- **Asset value:** EV/EBITDA times gross operating profit, with the multiple and the firm-value volatility from Damodaran Europe (January 2026, positive-EBITDA firms), mapped by industry (`data/ref/sector_map.csv`).
+- **Scope 1 intensity:** the A64 industry intensity from Eurostat air emissions accounts (`env_ac_ainah_r2`, GHG) over output (`nama_10_a64`, P1), 2023. It is the same for every firm in an industry.
+- **Exposure:** gross loans to non-financial corporations by NACE section from Pillar 3 template EU CQ5 at 31 December 2025, Intesa Sanpaolo for IT (€161.1 billion in scope) and Deutsche Bank for DE (€157.6 billion). Each section is split across cells by amounts owed to credit institutions (BACH item L2), then equally across the firms of a cell.
 
-In this mode the leverage level cancels out: the calibration constant absorbs it, and a relative EBITDA shock moves DD by ln(margin_t / margin_0) / sigma, whatever the leverage. Firm-level dispersion from BACH (quartiles of gross operating profit over net debt, ratio R27) is the planned second mode. BACH requires a registered login.
+Sections with no usable BACH cell keep one representative firm per A64 industry: DE A, B, E, I and IT P, Q.
 
-One loan is rejected: Italian postal services (H53) has negative gross operating surplus in 2023 (EBITDA -€211 million on €9.1 billion of output), so the Merton value is undefined.
+**Representative-firm mode (sensitivity).** One firm per A64 industry, margin = gross operating surplus over output from Eurostat (B1G - D1 - D29X39 over P1), exposure split by value added. In this mode leverage cancels: the calibration constant absorbs it, and an EBITDA shock moves DD by ln(margin_t / margin_0) / sigma.
 
 ### 2.4 Scenarios
 
@@ -69,49 +70,58 @@ The scenarios are NGFS Phase V, retrieved from the IIASA Scenario Explorer (`ngf
 
 The NGFS licence allows research and commercial use but restricts redistribution of substantial parts of the data ([Zenodo record](https://zenodo.org/records/15790097)). The repository therefore ships the download script, not the data.
 
-## 3. Results (GCAM, pass-through 0)
+## 3. Results (GCAM, pass-through 0, firm-level portfolio)
 
 **Portfolio PD, change versus Current Policies (percentage points)**
 
 | | 2030 | 2040 | 2050 | Peak |
 |---|---|---|---|---|
-| IT, Net Zero 2050 | +0.53 | +3.18 | +2.40 | +4.06 (2043) |
-| IT, Delayed transition | 0.00 | +1.49 | +2.43 | +2.72 (2047) |
-| DE, Net Zero 2050 | +0.09 | +1.01 | +0.42 | +1.22 (2042) |
-| DE, Delayed transition | 0.00 | +0.33 | +0.33 | +0.57 (2046) |
+| IT, Net Zero 2050 | +2.66 | +4.72 | +2.77 | +4.96 (2042) |
+| IT, Delayed transition | 0.00 | +3.87 | +2.81 | +4.18 (2042) |
+| DE, Net Zero 2050 | +0.40 | +1.23 | +0.32 | +1.38 (2042) |
+| DE, Delayed transition | 0.00 | +0.58 | +0.23 | +0.78 (2043) |
 
-1. **The shock is hump-shaped in time.** Carbon prices rise faster than emission intensities fall until the early 2040s. After that, sector decarbonisation removes the base the price applies to, so the PD increase peaks in 2042-2043 under Net Zero 2050. A Delayed transition shifts the peak to 2046-2047 and keeps it high at 2050.
-2. **Risk concentrates in few sectors.** In 2040, under Net Zero 2050, the largest section shifts are agriculture (IT +58.9 pp, DE +88.4 pp), Italian water and waste (+45.2 pp), transport (IT +11.4 pp, DE +13.7 pp) and manufacturing (+1.7 pp in both). Most service sections move by less than 0.1 pp.
-3. **The Italian portfolio result depends on one assumption.** Agriculture is 2% of Italian exposure, but its CH4 and N2O emissions, priced at the full economy-wide carbon price with no pass-through, wipe out its EBITDA. With agriculture exempt from the carbon price, the Italian 2050 shift falls from +2.40 pp to +0.37 pp, and the German one from +0.42 pp to +0.26 pp. The NGFS carbon price is a proxy for economy-wide policy intensity. EU agriculture is currently outside the ETS. Both readings are shown, and the reader should not take the headline number without this sensitivity.
-4. **The Italy-Germany gap has two sources.** The anchors differ (1.69% against 0.39%). The sector mix also differs: Deutsche Bank's CQ5 book is weighted towards real estate and other services, which carry low emissions.
+1. **The shock is hump-shaped in time.** Carbon prices rise faster than emission intensities fall until the early 2040s. After that, sector decarbonisation removes the base the price applies to, so the PD increase peaks in 2042 under Net Zero 2050. A Delayed transition starts in 2030 and peaks at a similar time.
+2. **Dispersion matters most in the near term.** With firm-level margins and leverage, the Italian 2030 shift under Net Zero is +2.66 pp, against +0.53 pp with one representative firm per industry. Thin-margin firms cross the default threshold first; the Merton PD is convex, so averaging firms hides them. By 2050 the two modes converge (+2.77 pp against +2.40 pp).
+3. **Risk concentrates in few sectors.** In 2040, under Net Zero 2050, the largest section shifts are:
+   - agriculture: IT +96.5 pp, DE +88.4 pp;
+   - Italian water and waste: +26.6 pp;
+   - transport: IT +18.9 pp, DE +7.6 pp;
+   - manufacturing: IT +2.3 pp, DE +4.2 pp.
+
+   Most service sections move by less than 0.7 pp.
+4. **The Italian 2050 figure depends on one assumption.** Agriculture is 2% of Italian exposure, but its CH4 and N2O emissions, priced at the full economy-wide carbon price with no pass-through, wipe out farm margins. With agriculture exempt from the carbon price, the Italian 2050 shift falls from +2.77 pp to +0.63 pp, and the German one from +0.32 pp to +0.16 pp. The NGFS carbon price is a proxy for economy-wide policy intensity. EU agriculture is currently outside the ETS. Both readings are shown, and the reader should not take the headline number without this sensitivity.
+5. **The Italy-Germany gap has two sources.** The anchors differ (1.69% against 0.39%). The sector mix also differs: Deutsche Bank's CQ5 book is weighted towards real estate and other services, which carry low emissions.
 
 **Sensitivity, Net Zero 2050 versus Current Policies, portfolio PD change in 2050 (pp)**
 
 | Variant | IT | DE |
 |---|---|---|
-| Reference | 2.40 | 0.42 |
-| Pass-through 50% | 2.18 | 0.21 |
-| Volatility x0.8 / x1.2 | 2.50 / 2.32 | 0.50 / 0.35 |
-| Agriculture unpriced | 0.37 | 0.26 |
-| MESSAGEix-GLOBIOM | 1.95 | 0.35 |
-| REMIND-MAgPIE | 2.66 | 0.22 |
+| Reference | 2.77 | 0.32 |
+| Pass-through 50% | 2.47 | 0.18 |
+| Volatility x0.8 / x1.2 | 2.81 / 2.73 | 0.33 / 0.31 |
+| Agriculture unpriced | 0.63 | 0.16 |
+| MESSAGEix-GLOBIOM | 3.62 | 0.52 |
+| REMIND-MAgPIE | 2.97 | 0.49 |
+| Leverage cap 10x / 40x | 2.91 / 2.66 | 0.37 / 0.32 |
+| Representative firm | 2.40 | 0.42 |
 
-Model choice changes the 2050 result by up to 0.7 pp in Italy. The pricing of agricultural emissions changes it by 2.0 pp. Volatility matters least.
+The pricing of agricultural emissions changes the Italian 2050 result by 2.1 pp, and model choice by up to 0.9 pp. The leverage cap, volatility and portfolio mode move it by less than 0.4 pp.
 
 ## 4. Limitations
 
-1. **One firm per industry.** The representative-firm mode ignores dispersion within industries. Because the Merton PD is convex, this understates the tail; BACH quartiles address it.
-2. **PD jumps to 100%.** Where EBITDA reaches zero the PD becomes 1. This happened in 91 of the 17,940 projection cells of the reference run (115 loans, 6 scenarios, 26 years), concentrated in air and sea transport and agriculture. The rule is conservative and produces jumps.
-3. **Borrowed volatilities and multiples.** Asset volatilities and multiples come from listed European peers and are applied to whole industries.
-4. **Uniform anchor within a country.** Sector differences in the starting PD come only from volatility. Full sector series need registered access (Destatis GENESIS); the public Destatis release covers four of seventeen sections, so sector relatives are left to v2.
+1. **Independent draws.** Margin and leverage are drawn independently within a cell, so their correlation is lost. Emission intensity is the industry average for every firm in that industry.
+2. **PD jumps to 100%.** Where EBITDA reaches zero the PD becomes 1. This happened in 104,095 of the 9,985,560 projection cells (1.0%) of the reference run, agriculture 35%, transport 31%, manufacturing 17%, water and waste 15%. The rule is conservative and produces jumps.
+3. **Borrowed valuation inputs.** Asset volatilities and multiples come from listed European peers and are applied to SMEs. The 20x leverage cap is a modelling choice; the 10x and 40x sensitivities bound its effect.
+4. **Uniform anchor within a country.** Sector differences in the starting PD come from the BACH leverage distribution and from volatility, not from observed sector default rates. Full sector series need registered access (Destatis GENESIS); the public Destatis release covers four of seventeen sections.
 5. **Fixed balance sheet and base year.** Exposures are static, 2023 financials are taken as 2025 values, and one bank's CQ5 book stands in for each country.
 6. **Omitted channels.** The energy-cost channel via Scope 2, the Scope 3 revenue channel and physical risk from OP 281 are not in v1. The abatement-investment channel is implemented but switched off, because its calibration value is not traceable.
-7. **Public inputs only.** The engine uses only public data and public methodology.
+7. **Public inputs only.** The engine uses only public data and public methodology. BACH requires free registration.
 
 ## 5. Reproduction
 
 ```
-python scripts/download.py
+python scripts/download.py        # BACH: download bach.zip after free registration, unzip into data/raw/
 python run.py config.toml
 python -m pytest tests
 ```
