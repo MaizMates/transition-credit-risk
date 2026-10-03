@@ -104,6 +104,8 @@ def main(cfg_path):
     report.write_csv(sect, OUT / "pd_by_sector.csv")
     if rejected:
         report.write_csv(rejected, OUT / "rejected.csv")
+    else:
+        (OUT / "rejected.csv").unlink(missing_ok=True)
 
     def nz2050(rows, label):
         return [{"variant": label, "country": r["country"], "dpd_pp": r["dpd_pp"], "pd": r["pd"]} for r in rows

@@ -2,3 +2,4 @@
 data/raw/
 *.duckdb
 __pycache__/
+.claude/
