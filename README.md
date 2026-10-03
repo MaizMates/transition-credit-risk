@@ -1,5 +1,7 @@
 # Transition credit risk engine: NGFS scenarios to corporate PDs
 
+![tests](https://github.com/MaizMates/transition-credit-risk/actions/workflows/tests.yml/badge.svg)
+
 An open, reproducible engine that translates **NGFS Phase V transition scenarios** into
 **probabilities of default and expected loss** for a non-financial corporate loan book, by NACE
 sector, for **Italy and Germany, 2025-2050**.
