@@ -3,3 +3,4 @@ data/raw/
 *.duckdb
 __pycache__/
 .claude/
+.env.local

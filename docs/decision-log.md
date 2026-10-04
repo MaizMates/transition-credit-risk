@@ -43,3 +43,13 @@ Still open: BACH download route, CR9 anchors (two IRB banks per country), Banca 
 | Exposure | CQ5 section split across cells by BACH L2 (amounts owed to credit institutions) | Bank-debt weights within section |
 | Fallback | Sections without usable BACH cells keep the representative firm: DE A, B, E, I; IT P, Q | Coverage gaps in BACH 2023 |
 | Calibration bracket | Brent on [-20, 20]; failure names country and section | Spec section 9 |
+
+## Sector relatives (2026-10-04)
+
+| Item | Decision | Reason |
+|---|---|---|
+| Germany | Anchor x relative factor from Destatis insolvency frequency, 2021-2025 mean, normalised to exposure-weighted mean 1 | Gives sector-specific starting PDs without changing the Pillar 3 level |
+| Denominator | Legal units in the Destatis business register of year t-1 | 2025 register unpublished; reproduces official 2025 rates within 4% |
+| Agriculture (DE) | Average factor | Not in the Destatis register |
+| Italy | Uniform anchor | Banca d'Italia moved ATECO-level default series to its online database (no programmatic access found); PDF has broad sectors only |
+| Access | GENESIS API with a personal token kept in `.env.local` (ignored by git) | Destatis requires free registration for API access |

@@ -17,6 +17,7 @@ bach_year = "2023"                # latest BACH year with full IT and DE coverag
 firms_per_cell = 200              # simulated firms per BACH division x size cell
 seed = 20260929
 margin_floor = 0.005              # firms with EBITDA margin below 0.5% excluded (t0 rule EBITDA > 0)
+sector_relatives = ["DE"]         # countries whose starting PD varies by sector (Destatis insolvency rates); IT uniform
 leverage_cap = 20.0               # net debt / gross operating profit capped at 20x (ECB leveraged-transactions guidance: >6x highly leveraged)
 
 [conversion]                      # US$2010 -> EUR at 2023 prices

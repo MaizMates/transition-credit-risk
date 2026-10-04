@@ -1,6 +1,8 @@
 {
-  "config_sha256": "be02ab29952a16cb92722ed2e480e44ee4530b814a0a9cb83e614b4d66959b7f",
+  "config_sha256": "8beca822d7ed6a31c46db769419cf68f1fa0adc8289d3472e759c642ad6deb9e",
   "inputs_sha256": {
+    "destatis_52111-0002.csv": "6e37a74e1613e89c07180814f1423671a7ad0af0ea47dee84319084e4544270e",
+    "destatis_52411-0068.csv": "95fd26c903ecbe9d68970bf061211468ecfac034cfe989ef5829b94411f03387",
     "eurostat_air_emissions.csv": "c8505f0153074c776dfe563a225764c6ad86eec898d3ac8ba7759c5f9fafe462",
     "eurostat_nama_a64.csv": "a9790adc9270846bc86bea9fba2b121ae349331cb0cfd934c00a37f53b4aba74",
     "ngfs_phase5.csv": "f7aa3cc59d295bc7c78498e143f743052d69b52569010e65808c3c8a6ca66e69",
@@ -9,6 +11,7 @@
     "bach_it_de.parquet": "2250c58fa818affbd6f2a0b0e655a6d8fc1d4a54eb0d04689dad606ca7f5a043",
     "cq5_weights.csv": "3d54b6c3741e7b32a7d457e99ba71f5dc81322d16aa481909e9ec6be94c7af4c",
     "cr9_rows.csv": "b0781d807a9b1706e595240b2c0f44cd4de6ea10600e4212073636099eae4a3d",
+    "de_insolvency_rates.csv": "06477b74aaf7c7e7b982a4b2a83d522660a5ca98de3944b1aa2bd971085ae637",
     "sector_map.csv": "cd7b5f6ffa7753af3686e47233804e38f671eca9dc32dd40b29243a96d3640f1"
   },
   "ngfs": "NGFS Phase V, IIASA Scenario Explorer ngfs_phase_5",
@@ -43,5 +46,24 @@
       "IT-P",
       "IT-Q"
     ]
+  },
+  "sector_relatives": {
+    "DE-A": 1.0,
+    "DE-B": 0.54,
+    "DE-C": 1.342,
+    "DE-D": 0.182,
+    "DE-E": 0.654,
+    "DE-F": 1.665,
+    "DE-G": 1.028,
+    "DE-H": 2.257,
+    "DE-I": 1.504,
+    "DE-J": 1.016,
+    "DE-L": 0.725,
+    "DE-M": 0.778,
+    "DE-N": 1.647,
+    "DE-P": 0.586,
+    "DE-Q": 0.408,
+    "DE-R": 0.696,
+    "DE-S": 0.764
   }
 }

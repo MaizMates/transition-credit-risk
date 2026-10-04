@@ -104,3 +104,19 @@ def test_a64_codes_cover_bach_divisions():
     assert portfolio.covers("C10-C12", "C11") and portfolio.covers("C31_C32", "C32")
     assert portfolio.covers("B", "B06") and portfolio.covers("C23", "C23")
     assert not portfolio.covers("C10-C12", "C13") and not portfolio.covers("C23", "C24")
+
+
+def test_sector_relatives_keep_the_portfolio_anchor(tmp_path):
+    import csv
+    import run
+    path = tmp_path / "rates.csv"
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["section", "year", "per_10000"])
+        w.writerows([["C", 2023, 60.0], ["F", 2023, 120.0], ["Q", 2023, 20.0]])
+    firms = {"country": np.array(["DE", "DE", "DE", "DE"]), "section": np.array(["C", "F", "Q", "A"]),
+             "exposure": np.array([50.0, 20.0, 20.0, 10.0])}
+    rel = run.sector_relatives(firms, ["DE"], path, years=(2021, 2025))
+    mean = sum(firms["exposure"][i] * rel[("DE", k)] for i, k in enumerate(firms["section"])) / firms["exposure"].sum()
+    assert abs(mean - 1.0) < 1e-12
+    assert rel[("DE", "F")] > rel[("DE", "C")] > rel[("DE", "Q")]

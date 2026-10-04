@@ -6,6 +6,7 @@ import sys
 import tomllib
 from pathlib import Path
 
+import duckdb
 import numpy as np
 
 from tcr import engine, portfolio, report, scenarios
@@ -25,7 +26,29 @@ def anchors(path):
     return {c: s / n for c, (s, n) in acc.items()}
 
 
-def simulate(firms, paths, anchor, pi, k_repl, sigma_scale, unpriced=()):
+def sector_relatives(firms, countries, path, years=(2021, 2025)):
+    """Sector relatives r[country, section] from national insolvency rates (5-year mean), normalised so the
+    exposure-weighted mean of r in each country is 1: the portfolio anchor stays the Pillar 3 level.
+    Sections without a rate take the exposure-weighted mean rate of the covered sections (r = 1)."""
+    rel = {}
+    for country in countries:
+        rows = duckdb.sql(f"""select section, avg(per_10000) from '{path}' where year between {years[0]} and {years[1]}
+                              group by 1""").fetchall() if Path(path).exists() else []
+        rate = dict(rows)
+        i = firms["country"] == country
+        secs = sorted(set(firms["section"][i]))
+        w = {k: float(firms["exposure"][i & (firms["section"] == k)].sum()) for k in secs}
+        covered = [k for k in secs if k in rate]
+        if not covered:
+            continue
+        mean_cov = sum(w[k] * rate[k] for k in covered) / sum(w[k] for k in covered)
+        raw = {k: rate.get(k, mean_cov) for k in secs}
+        norm = sum(w[k] * raw[k] for k in secs) / sum(w.values())
+        rel.update({(country, k): raw[k] / norm for k in secs})
+    return rel
+
+
+def simulate(firms, paths, anchor, pi, k_repl, sigma_scale, unpriced=(), rel=None):
     """PD[i,t] per (country, scenario), with c calibrated per country x section at t0."""
     firms = {**firms, "priced": np.array([s not in unpriced for s in firms["iam_sector"]])}
     sigma = firms["sigma"] * sigma_scale
@@ -34,7 +57,7 @@ def simulate(firms, paths, anchor, pi, k_repl, sigma_scale, unpriced=()):
     for key in {(a, b) for a, b in zip(firms["country"], firms["section"])}:
         i = (firms["country"] == key[0]) & (firms["section"] == key[1])
         try:
-            c[i] = engine.calibrate(dd0[i], firms["exposure"][i], anchor[key[0]])
+            c[i] = engine.calibrate(dd0[i], firms["exposure"][i], anchor[key[0]] * (rel or {}).get(key, 1.0))
         except ValueError as e:
             raise SystemExit(f"calibration failed for country {key[0]}, NACE section {key[1]}: {e}")
     out, nonpos = {}, 0
@@ -94,9 +117,15 @@ def main(cfg_path):
     firms, ok, rejected, exp_in, stats = build(pf["mode"])
     anchor = anchors(REF / "cr9_rows.csv")
 
-    def variant(model, pi=run["pass_through"], sigma_scale=1.0, unpriced=tuple(run["unpriced_sectors"]), firms=firms):
+    def relatives(firms, use=True):
+        return sector_relatives(firms, pf.get("sector_relatives", []), REF / "de_insolvency_rates.csv") if use else {}
+
+    rel = relatives(firms)
+
+    def variant(model, pi=run["pass_through"], sigma_scale=1.0, unpriced=tuple(run["unpriced_sectors"]), firms=firms,
+                rel=rel):
         paths, skipped = scenarios.load(RAW / "ngfs_phase5.csv", model, run["countries"], grid, eur)
-        pds, nonpos = simulate(firms, paths, anchor, pi, run["k_repl"], sigma_scale, unpriced)
+        pds, nonpos = simulate(firms, paths, anchor, pi, run["k_repl"], sigma_scale, unpriced, rel)
         return aggregate(firms, pds, grid, run["reference_scenario"], run["lgd"]), skipped, nonpos
 
     (port, sect), skipped, nonpos = variant(run["reference_iam"])
@@ -121,9 +150,13 @@ def main(cfg_path):
     for m in sens["iams"]:
         sens_rows += nz2050(variant(m)[0][0], m.split(" ")[0].split("-")[0])
     for cap in sens.get("leverage_cap", []) if pf["mode"] == "bach" else []:
-        sens_rows += nz2050(variant(run["reference_iam"], firms=build("bach", cap)[0])[0][0], f"Leverage cap {cap:.0f}x")
+        fcap = build("bach", cap)[0]
+        sens_rows += nz2050(variant(run["reference_iam"], firms=fcap, rel=relatives(fcap))[0][0], f"Leverage cap {cap:.0f}x")
+    if rel:
+        sens_rows += nz2050(variant(run["reference_iam"], rel={})[0][0], "Uniform anchor")
     if sens.get("representative_firm") and pf["mode"] == "bach":
-        sens_rows += nz2050(variant(run["reference_iam"], firms=build("representative")[0])[0][0], "Representative firm")
+        frep = build("representative")[0]
+        sens_rows += nz2050(variant(run["reference_iam"], firms=frep, rel=relatives(frep))[0][0], "Representative firm")
     report.write_csv(sens_rows, OUT / "sensitivity.csv")
 
     report.heatmap([r for r in sect if r["year"] in (2030, 2040, 2050) and r["scenario"] != run["reference_scenario"]
@@ -145,10 +178,11 @@ def main(cfg_path):
         "scenarios_skipped": skipped,
         "exposure_eur_m": {"in": exp_in / 1e6, "valid": float(firms["exposure"].sum() / 1e6)},
         "portfolio_mode": pf["mode"], "portfolio_stats": stats,
+        "sector_relatives": {f"{c}-{k}": round(v, 3) for (c, k), v in sorted(rel.items())},
     }
     (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2))
     print(json.dumps({k: manifest[k] for k in ("anchors_pd", "loans_valid", "loans_rejected", "projection_cells_with_ebitda_le_0",
-                                                "scenarios_skipped", "portfolio_mode", "portfolio_stats")}, indent=2))
+                                                "scenarios_skipped", "portfolio_mode", "portfolio_stats", "sector_relatives")}, indent=2))
 
 
 if __name__ == "__main__":

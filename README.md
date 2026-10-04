@@ -23,7 +23,7 @@ sector mix of the two largest banks' Pillar 3 books.
 | Portfolio PD change | 2030 | 2040 | 2050 | Peak |
 |---|---|---|---|---|
 | Italy | +2.66 pp | +4.72 pp | +2.77 pp | +4.96 pp (2042) |
-| Germany | +0.40 pp | +1.23 pp | +0.32 pp | +1.38 pp (2042) |
+| Germany | +0.39 pp | +1.27 pp | +0.34 pp | +1.44 pp (2042) |
 
 1. **Hump-shaped risk.** The PD increase peaks in 2042. Carbon prices rise faster than sector emissions fall until then; afterwards decarbonisation shrinks the base the price applies to.
 2. **Dispersion matters.** Thin-margin firms cross the default threshold first. With firm-level data the Italian 2030 shift is +2.66 pp, against +0.53 pp with one representative firm per industry.
@@ -39,9 +39,10 @@ sector mix of the two largest banks' Pillar 3 books.
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python scripts/download.py     # NGFS (IIASA), Eurostat, Damodaran into data/raw/
+# Germany sector relatives: free GENESIS account, API token in .env.local (GENESIS_TOKEN=...), then scripts/destatis_rates.py
 # BACH: register (free) at bach.banque-france.fr, Data selection > Download the complete database, unzip into data/raw/
 .venv/bin/python run.py config.toml      # writes results/
-.venv/bin/python -m pytest tests         # 11 tests: Merton, calibration, channels, interpolation, validation, BACH sampling
+.venv/bin/python -m pytest tests         # 12 tests: Merton, calibration, channels, interpolation, validation, BACH sampling
 ```
 
 `data/raw/` is not versioned: the NGFS licence restricts redistribution of the scenario data.
@@ -53,6 +54,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 | `config.toml` | Every parameter, with its source |
 | `data/ref/cr9_rows.csv` | Pillar 3 EU CR9 rows behind the PD anchors (bank, page, URL) |
 | `data/ref/cq5_weights.csv` | Pillar 3 EU CQ5 loans by NACE section, used as exposure weights |
+| `data/ref/de_insolvency_rates.csv` | Destatis insolvency frequency by section, behind the German sector relatives |
 | `data/ref/sector_map.csv` | A64 industry to NACE section, NGFS emission sector, Damodaran industry |
 | `tcr/scenarios.py` | NGFS paths: carbon price, sector emissions, GDP; annual interpolation |
 | `tcr/portfolio.py` | Loan-tape validation; firm-level portfolio from BACH quartiles; representative-firm fallback |
